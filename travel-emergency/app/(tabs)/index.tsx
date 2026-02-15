@@ -9,7 +9,9 @@ import {
   TouchableOpacity,
   Modal,
   FlatList,
+  Platform,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect } from "expo-router";
 import * as Linking from "expo-linking";
 import { EmergencyButton } from "../../src/components/EmergencyButton";
@@ -20,6 +22,10 @@ import { Consulate, EmergencyContact } from "../../src/types";
 import { countryCodeToFlag } from "../../src/utils/countryFlag";
 
 export default function EmergencyScreen() {
+  const insets = useSafeAreaInsets();
+  const safeBottom =
+    Platform.OS === "android" ? Math.max(insets.bottom, 48) : insets.bottom;
+
   const [consulate, setConsulate] = useState<Consulate | null>(null);
   const [countryCode, setCountryCode] = useState<string>("");
   const [countryName, setCountryName] = useState<string>("");
@@ -94,7 +100,7 @@ export default function EmergencyScreen() {
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, { paddingBottom: 40 + safeBottom }]}
       refreshControl={
         <RefreshControl refreshing={loading} onRefresh={loadData} />
       }
@@ -206,7 +212,6 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 20,
-    paddingBottom: 40,
   },
   emptyContainer: {
     flex: 1,

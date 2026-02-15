@@ -1,12 +1,15 @@
 import { Tabs } from "expo-router";
-import { Text, View } from "react-native";
+import { Text, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
 
-  // TODO: 디버그용 - 확인 후 삭제
-  console.log("[DEBUG] SafeArea insets:", JSON.stringify(insets));
+  // Expo Go에서 insets.bottom이 0을 반환하는 경우 Android 최소값 적용
+  const safeBottom =
+    Platform.OS === "android"
+      ? Math.max(insets.bottom, 48)
+      : insets.bottom;
 
   return (
     <Tabs
@@ -14,8 +17,8 @@ export default function TabLayout() {
         tabBarActiveTintColor: "#DC2626",
         tabBarInactiveTintColor: "#999",
         tabBarStyle: {
-          height: 60 + insets.bottom,
-          paddingBottom: 8 + insets.bottom,
+          height: 60 + safeBottom,
+          paddingBottom: 8 + safeBottom,
           paddingTop: 4,
         },
         tabBarLabelStyle: {

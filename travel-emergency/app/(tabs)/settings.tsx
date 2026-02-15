@@ -7,7 +7,9 @@ import {
   FlatList,
   Alert,
   TextInput,
+  Platform,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useFocusEffect } from "expo-router";
 import {
   getSetting,
@@ -20,6 +22,10 @@ import { EmergencyContact } from "../../src/types";
 import { countryCodeToFlag } from "../../src/utils/countryFlag";
 
 export default function SettingsScreen() {
+  const insets = useSafeAreaInsets();
+  const safeBottom =
+    Platform.OS === "android" ? Math.max(insets.bottom, 48) : insets.bottom;
+
   const [countryCode, setCountryCode] = useState<string>("");
   const [countryName, setCountryName] = useState<string>("");
   const [contacts, setContacts] = useState<EmergencyContact[]>([]);
@@ -90,7 +96,7 @@ export default function SettingsScreen() {
   return (
     <FlatList
       style={styles.container}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, { paddingBottom: 40 + safeBottom }]}
       data={contacts}
       keyExtractor={(item) => item.id.toString()}
       ListHeaderComponent={
@@ -189,7 +195,6 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 20,
-    paddingBottom: 40,
   },
   sectionTitle: {
     fontSize: 16,
