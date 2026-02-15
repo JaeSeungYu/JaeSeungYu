@@ -17,20 +17,25 @@ import {
   setSetting,
 } from "../../src/db/database";
 import { EmergencyContact } from "../../src/types";
+import { countryCodeToFlag } from "../../src/utils/countryFlag";
 
 export default function SettingsScreen() {
+  const [countryCode, setCountryCode] = useState<string>("");
   const [countryName, setCountryName] = useState<string>("");
   const [contacts, setContacts] = useState<EmergencyContact[]>([]);
   const [userName, setUserName] = useState("");
+  const [userPhone, setUserPhone] = useState("");
 
   const loadData = useCallback(async () => {
     const code = await getSetting("selected_country");
     if (code) {
+      setCountryCode(code);
       const results = await getConsulatesByCountry(code);
       if (results.length > 0) {
         setCountryName(results[0].country_name_ko);
       }
     } else {
+      setCountryCode("");
       setCountryName("");
     }
 
@@ -39,6 +44,9 @@ export default function SettingsScreen() {
 
     const savedName = await getSetting("user_name");
     if (savedName) setUserName(savedName);
+
+    const savedPhone = await getSetting("user_phone");
+    if (savedPhone) setUserPhone(savedPhone);
   }, []);
 
   useFocusEffect(
@@ -72,6 +80,13 @@ export default function SettingsScreen() {
     }
   };
 
+  const handleSaveUserPhone = async () => {
+    if (userPhone.trim()) {
+      await setSetting("user_phone", userPhone.trim());
+      Alert.alert("저장 완료", "휴대폰번호가 저장되었습니다.");
+    }
+  };
+
   return (
     <FlatList
       style={styles.container}
@@ -93,6 +108,18 @@ export default function SettingsScreen() {
                 onBlur={handleSaveUserName}
               />
             </View>
+            <View style={styles.fieldDivider} />
+            <Text style={styles.cardLabel}>휴대폰번호</Text>
+            <View style={styles.nameRow}>
+              <TextInput
+                style={styles.nameInput}
+                placeholder="010-0000-0000"
+                value={userPhone}
+                onChangeText={setUserPhone}
+                onBlur={handleSaveUserPhone}
+                keyboardType="phone-pad"
+              />
+            </View>
           </View>
 
           {/* 여행 국가 */}
@@ -105,6 +132,7 @@ export default function SettingsScreen() {
               <View>
                 <Text style={styles.cardLabel}>현재 여행 국가</Text>
                 <Text style={styles.cardValue}>
+                  {countryCode ? countryCodeToFlag(countryCode) + " " : ""}
                   {countryName || "선택하세요"}
                 </Text>
               </View>
@@ -210,6 +238,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#E5E7EB",
     paddingVertical: 4,
+  },
+  fieldDivider: {
+    height: 1,
+    backgroundColor: "#E5E7EB",
+    marginVertical: 12,
   },
   contactHeader: {
     flexDirection: "row",

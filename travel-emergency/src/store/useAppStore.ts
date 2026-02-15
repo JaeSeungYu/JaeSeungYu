@@ -5,6 +5,7 @@ interface AppState {
   selectedCountryCode: string | null;
   emergencyContacts: EmergencyContact[];
   userName: string;
+  userPhone: string;
   callCenterPhone: string;
 
   setSelectedCountry: (code: string | null) => void;
@@ -12,12 +13,14 @@ interface AppState {
   addEmergencyContact: (contact: Omit<EmergencyContact, "id" | "created_at">) => void;
   removeEmergencyContact: (id: number) => void;
   setUserName: (name: string) => void;
+  setUserPhone: (phone: string) => void;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
   selectedCountryCode: null,
   emergencyContacts: [],
   userName: "",
+  userPhone: "",
   callCenterPhone: "15880404",
 
   setSelectedCountry: (code) => set({ selectedCountryCode: code }),
@@ -42,4 +45,5 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   setUserName: (name) => set({ userName: name }),
+  setUserPhone: (phone) => set({ userPhone: phone }),
 }));

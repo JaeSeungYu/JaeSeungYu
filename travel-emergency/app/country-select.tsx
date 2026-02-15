@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { getAllCountries, setSetting, getSetting } from "../src/db/database";
+import { countryCodeToFlag } from "../src/utils/countryFlag";
 
 interface Country {
   country_code: string;
@@ -76,7 +77,7 @@ export default function CountrySelectScreen() {
             >
               <View>
                 <Text style={[styles.itemName, isSelected && styles.itemNameSelected]}>
-                  {item.country_name_ko}
+                  {countryCodeToFlag(item.country_code)} {item.country_name_ko}
                 </Text>
                 <Text style={styles.itemEnName}>{item.country_name_en}</Text>
               </View>

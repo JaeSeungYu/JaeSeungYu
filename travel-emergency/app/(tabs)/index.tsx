@@ -6,19 +6,26 @@ import {
   ScrollView,
   Alert,
   RefreshControl,
+  TouchableOpacity,
+  Modal,
+  FlatList,
 } from "react-native";
 import { useFocusEffect } from "expo-router";
 import * as Linking from "expo-linking";
 import { EmergencyButton } from "../../src/components/EmergencyButton";
 import { getConsulatesByCountry, getSetting, getEmergencyContacts } from "../../src/db/database";
 import { CONSULAR_CALL_CENTER } from "../../src/constants/consulates";
+import { TRAVEL_ADVISORIES } from "../../src/constants/travelAdvisories";
 import { Consulate, EmergencyContact } from "../../src/types";
+import { countryCodeToFlag } from "../../src/utils/countryFlag";
 
 export default function EmergencyScreen() {
   const [consulate, setConsulate] = useState<Consulate | null>(null);
+  const [countryCode, setCountryCode] = useState<string>("");
   const [countryName, setCountryName] = useState<string>("");
   const [contacts, setContacts] = useState<EmergencyContact[]>([]);
   const [loading, setLoading] = useState(true);
+  const [advisoryVisible, setAdvisoryVisible] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
@@ -28,10 +35,12 @@ export default function EmergencyScreen() {
         const results = await getConsulatesByCountry(code);
         if (results.length > 0) {
           setConsulate(results[0]);
+          setCountryCode(code);
           setCountryName(results[0].country_name_ko);
         }
       } else {
         setConsulate(null);
+        setCountryCode("");
         setCountryName("");
       }
       const savedContacts = await getEmergencyContacts();
@@ -92,8 +101,55 @@ export default function EmergencyScreen() {
     >
       <View style={styles.countryBanner}>
         <Text style={styles.countryLabel}>현재 여행 국가</Text>
-        <Text style={styles.countryName}>{countryName}</Text>
+        <View style={styles.countryNameRow}>
+          <Text style={styles.countryName}>
+            {countryCode ? countryCodeToFlag(countryCode) + " " : ""}
+            {countryName}
+          </Text>
+          {countryCode && TRAVEL_ADVISORIES[countryCode] && (
+            <TouchableOpacity
+              style={styles.advisoryButton}
+              onPress={() => setAdvisoryVisible(true)}
+            >
+              <Text style={styles.advisoryButtonText}>?</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
+
+      {/* 주의사항 모달 */}
+      <Modal
+        visible={advisoryVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setAdvisoryVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>
+              {countryCode ? countryCodeToFlag(countryCode) + " " : ""}
+              {TRAVEL_ADVISORIES[countryCode]?.title ?? "주의사항"}
+            </Text>
+            <FlatList
+              data={TRAVEL_ADVISORIES[countryCode]?.items ?? []}
+              keyExtractor={(_, i) => i.toString()}
+              renderItem={({ item, index }) => (
+                <View style={styles.advisoryItem}>
+                  <Text style={styles.advisoryBullet}>{index + 1}</Text>
+                  <Text style={styles.advisoryText}>{item}</Text>
+                </View>
+              )}
+              style={styles.advisoryList}
+            />
+            <TouchableOpacity
+              style={styles.modalCloseButton}
+              onPress={() => setAdvisoryVisible(false)}
+            >
+              <Text style={styles.modalCloseText}>닫기</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       <View style={styles.buttonsContainer}>
         <EmergencyButton
@@ -189,11 +245,30 @@ const styles = StyleSheet.create({
     color: "#991B1B",
     fontWeight: "500",
   },
+  countryNameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 4,
+    gap: 8,
+  },
   countryName: {
     fontSize: 24,
     fontWeight: "800",
     color: "#DC2626",
-    marginTop: 4,
+  },
+  advisoryButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#DC2626",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  advisoryButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "800",
   },
   buttonsContainer: {
     marginBottom: 20,
@@ -228,5 +303,61 @@ const styles = StyleSheet.create({
     color: "#4B5563",
     marginBottom: 4,
     lineHeight: 20,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    padding: 24,
+  },
+  modalContent: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 24,
+    maxHeight: "80%",
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#1F2937",
+    marginBottom: 16,
+    textAlign: "center",
+  },
+  advisoryList: {
+    marginBottom: 16,
+  },
+  advisoryItem: {
+    flexDirection: "row",
+    marginBottom: 12,
+    alignItems: "flex-start",
+  },
+  advisoryBullet: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "#FEF2F2",
+    color: "#DC2626",
+    fontSize: 13,
+    fontWeight: "700",
+    textAlign: "center",
+    lineHeight: 24,
+    marginRight: 10,
+  },
+  advisoryText: {
+    flex: 1,
+    fontSize: 15,
+    color: "#374151",
+    lineHeight: 22,
+  },
+  modalCloseButton: {
+    backgroundColor: "#F3F4F6",
+    borderRadius: 12,
+    padding: 14,
+    alignItems: "center",
+  },
+  modalCloseText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#374151",
   },
 });
