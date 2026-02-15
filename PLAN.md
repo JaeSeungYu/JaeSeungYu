@@ -509,10 +509,10 @@
 
 ### 10.1 필수 — 개발 환경 (코드 작성 즉시 필요)
 
-- [ ] **Node.js LTS 설치** — https://nodejs.org (v18 이상)
-- [ ] **EAS CLI 설치** — `npm install -g eas-cli`
-- [ ] **Expo 계정 생성** — https://expo.dev 에서 회원가입
-- [ ] **EAS 로그인 확인** — `eas login` 실행 후 로그인 성공 확인
+- [x] **Node.js LTS 설치** — https://nodejs.org (v18 이상) ✅
+- [x] **EAS CLI 설치** — `npm install -g eas-cli` ✅
+- [x] **Expo 계정 생성** — https://expo.dev 에서 회원가입 ✅
+- [x] **EAS 로그인 확인** — `eas login` 실행 후 로그인 성공 확인 ✅
 
 ### 10.2 필수 — 스토어 배포용 (빌드/제출 시 필요)
 
