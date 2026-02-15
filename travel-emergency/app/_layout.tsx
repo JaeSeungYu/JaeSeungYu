@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Stack, SplashScreen } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { getDatabase } from "../src/db/database";
 
 SplashScreen.preventAutoHideAsync();
@@ -18,7 +19,7 @@ export default function RootLayout() {
   if (!dbReady) return null;
 
   return (
-    <>
+    <SafeAreaProvider>
       <StatusBar style="light" />
       <Stack
         screenOptions={{
@@ -40,6 +41,6 @@ export default function RootLayout() {
           options={{ title: "비상연락처 추가" }}
         />
       </Stack>
-    </>
+    </SafeAreaProvider>
   );
 }
