@@ -1,12 +1,21 @@
-import { useEffect } from "react";
-import { Stack } from "expo-router";
+import { useEffect, useState } from "react";
+import { Stack, SplashScreen } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { getDatabase } from "../src/db/database";
 
+SplashScreen.preventAutoHideAsync();
+
 export default function RootLayout() {
+  const [dbReady, setDbReady] = useState(false);
+
   useEffect(() => {
-    getDatabase();
+    getDatabase()
+      .then(() => setDbReady(true))
+      .catch(console.error)
+      .finally(() => SplashScreen.hideAsync());
   }, []);
+
+  if (!dbReady) return null;
 
   return (
     <>
