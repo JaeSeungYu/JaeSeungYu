@@ -12,10 +12,12 @@ export default function RootLayout() {
   const [dbReady, setDbReady] = useState(false);
 
   useEffect(() => {
-    // Android 네비게이션 바를 relative로 설정하여 콘텐츠와 겹치지 않도록 함
     if (Platform.OS === "android") {
-      NavigationBar.setPositionAsync("relative");
-      NavigationBar.setBackgroundColorAsync("#ffffff");
+      (async () => {
+        await NavigationBar.setPositionAsync("relative");
+        await NavigationBar.setBackgroundColorAsync("#FFFFFF");
+        await NavigationBar.setButtonStyleAsync("dark");
+      })();
     }
   }, []);
 

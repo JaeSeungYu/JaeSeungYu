@@ -30,7 +30,16 @@
     },
     "plugins": [
       "expo-router",
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "expo-navigation-bar",
+        {
+          "position": "relative",
+          "visibility": "visible",
+          "backgroundColor": "#FFFFFF",
+          "barStyle": "dark-content"
+        }
+      ]
     ]
   }
 }
