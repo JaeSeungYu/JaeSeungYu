@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Platform } from "react-native";
 import { Stack, SplashScreen } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { SafeAreaProvider, initialWindowMetrics } from "react-native-safe-area-context";
 import * as NavigationBar from "expo-navigation-bar";
 import { getDatabase } from "../src/db/database";
 
@@ -29,7 +29,7 @@ export default function RootLayout() {
   if (!dbReady) return null;
 
   return (
-    <SafeAreaProvider>
+    <SafeAreaProvider initialMetrics={initialWindowMetrics}>
       <StatusBar style="light" />
       <Stack
         screenOptions={{
