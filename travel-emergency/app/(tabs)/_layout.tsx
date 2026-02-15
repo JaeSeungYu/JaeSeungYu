@@ -1,9 +1,12 @@
 import { Tabs } from "expo-router";
-import { Text } from "react-native";
+import { Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
+
+  // TODO: 디버그용 - 확인 후 삭제
+  console.log("[DEBUG] SafeArea insets:", JSON.stringify(insets));
 
   return (
     <Tabs
