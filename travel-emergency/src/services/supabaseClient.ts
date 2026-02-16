@@ -6,8 +6,12 @@ import { createClient, SupabaseClient } from "@supabase/supabase-js";
  * 환경변수는 .env 파일에서 관리 (.env.example 참고)
  * Expo에서 EXPO_PUBLIC_ 접두사 환경변수는 빌드 시 자동 주입됨
  */
-const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
-const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
+const SUPABASE_URL =
+  process.env.EXPO_PUBLIC_SUPABASE_URL ??
+  "https://tknvnbvqfgmwrbtkpqrs.supabase.co";
+const SUPABASE_ANON_KEY =
+  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ??
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRrbnZuYnZxZmdtd3JidGtwcXJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyMTQzMTksImV4cCI6MjA4Njc5MDMxOX0.mDLj_1n6eETiOVX_feN2L3I60FcAEwET_reGs0j4cmw";
 
 export const supabase: SupabaseClient = createClient(
   SUPABASE_URL,
