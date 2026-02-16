@@ -15,8 +15,9 @@ export default function TabLayout() {
           borderTopColor: "#e5e5e5",
           borderTopWidth: 1,
           paddingTop: 4,
-          // edge-to-edge 모드에서 시스템 네비게이션 바 겹침 방지
-          paddingBottom: Platform.OS === "android" ? Math.max(insets.bottom, 4) : insets.bottom,
+          // 시스템 네비게이션 바 겹침 방지 (Expo Go에서 insets.bottom이 0일 수 있음)
+          paddingBottom: Platform.OS === "android" ? Math.max(insets.bottom, 20) : insets.bottom,
+          height: Platform.OS === "android" ? 64 + Math.max(insets.bottom, 20) : undefined,
         },
         tabBarLabelStyle: {
           fontSize: 13,

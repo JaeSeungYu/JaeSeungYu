@@ -160,8 +160,8 @@ export default function EmergencyScreen() {
         />
 
         <EmergencyButton
-          label="당사 콜센터 연결"
-          subLabel="긴급 접수 및 지원"
+          label="긴급구조신호보내기"
+          subLabel="전화만 걸면 구조신호가 남겨집니다."
           phone="1588-0404"
           color="#1D4ED8"
           style={{ marginTop: 16 }}
