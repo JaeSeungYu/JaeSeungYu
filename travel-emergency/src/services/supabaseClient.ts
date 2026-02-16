@@ -1,0 +1,134 @@
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
+
+/**
+ * Supabase 클라이언트 설정
+ *
+ * 사용법:
+ * 1. https://supabase.com 에서 프로젝트 생성
+ * 2. Settings > API 에서 URL과 anon key 복사
+ * 3. 아래 값을 실제 프로젝트 값으로 교체
+ */
+const SUPABASE_URL = "https://your-project.supabase.co";
+const SUPABASE_ANON_KEY = "your-anon-key";
+
+export const supabase: SupabaseClient = createClient(
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY
+);
+
+// ─── 사용자 프로필 ───
+
+export async function upsertUserProfile(profile: {
+  user_phone: string;
+  user_name: string;
+  travel_country: string;
+  gps_latitude: number | null;
+  gps_longitude: number | null;
+  device_id: string;
+}) {
+  const { data, error } = await supabase
+    .from("users")
+    .upsert(
+      {
+        ...profile,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_phone" }
+    )
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+// ─── 비상연락처 동기화 ───
+
+export async function syncEmergencyContacts(
+  userPhone: string,
+  contacts: { name: string; phone: string; relationship: string }[]
+) {
+  // 기존 연락처 삭제 후 새로 삽입
+  await supabase
+    .from("emergency_contacts")
+    .delete()
+    .eq("user_phone", userPhone);
+
+  if (contacts.length === 0) return;
+
+  const { error } = await supabase.from("emergency_contacts").insert(
+    contacts.map((c) => ({
+      user_phone: userPhone,
+      name: c.name,
+      phone: c.phone,
+      relationship: c.relationship,
+    }))
+  );
+
+  if (error) throw error;
+}
+
+// ─── GPS 위치 업데이트 ───
+
+export async function updateUserLocation(
+  userPhone: string,
+  latitude: number,
+  longitude: number
+) {
+  const { error } = await supabase
+    .from("users")
+    .update({
+      gps_latitude: latitude,
+      gps_longitude: longitude,
+      gps_updated_at: new Date().toISOString(),
+    })
+    .eq("user_phone", userPhone);
+
+  if (error) throw error;
+}
+
+// ─── SOS 긴급구조 신호 ───
+
+export async function sendSOSSignal(payload: {
+  user_phone: string;
+  user_name: string;
+  travel_country: string;
+  gps_latitude: number | null;
+  gps_longitude: number | null;
+  sos_type: "CALL_ONLY" | "CALL_AND_API";
+  device_id: string;
+}) {
+  const { data, error } = await supabase
+    .from("sos_logs")
+    .insert({
+      ...payload,
+      sos_timestamp: new Date().toISOString(),
+      status: "RECEIVED",
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+// ─── 알림톡 발송 요청 ───
+
+export async function requestAlimtalk(
+  userPhone: string,
+  userName: string,
+  travelCountry: string
+) {
+  // Edge Function 호출 (서버사이드에서 카카오 알림톡 API 실행)
+  const { data, error } = await supabase.functions.invoke("send-alimtalk", {
+    body: {
+      user_phone: userPhone,
+      user_name: userName,
+      travel_country: travelCountry,
+      timestamp: new Date().toISOString(),
+    },
+  });
+
+  if (error) throw error;
+  return data;
+}
