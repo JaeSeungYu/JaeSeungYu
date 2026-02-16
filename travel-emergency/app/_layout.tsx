@@ -3,7 +3,6 @@ import { Platform } from "react-native";
 import { Stack, SplashScreen } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider, initialWindowMetrics } from "react-native-safe-area-context";
-import * as NavigationBar from "expo-navigation-bar";
 import { getDatabase } from "../src/db/database";
 
 SplashScreen.preventAutoHideAsync();
@@ -14,9 +13,14 @@ export default function RootLayout() {
   useEffect(() => {
     if (Platform.OS === "android") {
       (async () => {
-        await NavigationBar.setPositionAsync("relative");
-        await NavigationBar.setBackgroundColorAsync("#FFFFFF");
-        await NavigationBar.setButtonStyleAsync("dark");
+        try {
+          const NavigationBar = await import("expo-navigation-bar");
+          await NavigationBar.setPositionAsync("relative");
+          await NavigationBar.setBackgroundColorAsync("#FFFFFF");
+          await NavigationBar.setButtonStyleAsync("dark");
+        } catch {
+          // expo-navigation-bar API 호환 문제 시 무시 (Expo Go 등)
+        }
       })();
     }
   }, []);

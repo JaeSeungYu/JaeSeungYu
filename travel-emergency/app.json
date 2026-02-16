@@ -6,7 +6,6 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
     "scheme": "travel-emergency",
     "splash": {
       "image": "./assets/splash-icon.png",
@@ -22,7 +21,6 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#DC2626"
       },
-      "edgeToEdgeEnabled": false,
       "package": "com.travelemergency.app"
     },
     "web": {
@@ -30,16 +28,7 @@
     },
     "plugins": [
       "expo-router",
-      "expo-sqlite",
-      [
-        "expo-navigation-bar",
-        {
-          "position": "relative",
-          "visibility": "visible",
-          "backgroundColor": "#FFFFFF",
-          "barStyle": "dark-content"
-        }
-      ]
+      "expo-sqlite"
     ]
   }
 }

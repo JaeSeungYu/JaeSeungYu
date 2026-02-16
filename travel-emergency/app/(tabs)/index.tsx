@@ -186,6 +186,7 @@ export default function EmergencyScreen() {
           phone=""
           color={contacts.length > 0 ? "#EA580C" : "#9CA3AF"}
           style={{ marginTop: 0 }}
+          onPress={handleAlimtalk}
         />
       </View>
 

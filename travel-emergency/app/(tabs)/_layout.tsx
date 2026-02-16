@@ -1,7 +1,10 @@
 import { Tabs } from "expo-router";
-import { Text } from "react-native";
+import { Text, Platform } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function TabLayout() {
+  const insets = useSafeAreaInsets();
+
   return (
     <Tabs
       screenOptions={{
@@ -12,6 +15,8 @@ export default function TabLayout() {
           borderTopColor: "#e5e5e5",
           borderTopWidth: 1,
           paddingTop: 4,
+          // edge-to-edge 모드에서 시스템 네비게이션 바 겹침 방지
+          paddingBottom: Platform.OS === "android" ? Math.max(insets.bottom, 4) : insets.bottom,
         },
         tabBarLabelStyle: {
           fontSize: 13,

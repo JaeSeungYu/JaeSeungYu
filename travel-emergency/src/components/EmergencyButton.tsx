@@ -14,10 +14,18 @@ interface Props {
   phone: string;
   color: string;
   style?: ViewStyle;
+  onPress?: () => void;
 }
 
-export function EmergencyButton({ label, subLabel, phone, color, style }: Props) {
+export function EmergencyButton({ label, subLabel, phone, color, style, onPress }: Props) {
   const handlePress = () => {
+    if (onPress) {
+      onPress();
+      return;
+    }
+
+    if (!phone) return;
+
     const cleanPhone = phone.replace(/[^+\d]/g, "");
     const url = `tel:${cleanPhone}`;
 
@@ -30,7 +38,9 @@ export function EmergencyButton({ label, subLabel, phone, color, style }: Props)
           text: "전화 걸기",
           style: "default",
           onPress: () => {
-            Linking.openURL(url);
+            Linking.openURL(url).catch(() => {
+              Alert.alert("오류", "전화 앱을 열 수 없습니다.");
+            });
           },
         },
       ]
@@ -45,7 +55,7 @@ export function EmergencyButton({ label, subLabel, phone, color, style }: Props)
     >
       <Text style={styles.label}>{label}</Text>
       {subLabel && <Text style={styles.subLabel}>{subLabel}</Text>}
-      <Text style={styles.phone}>{phone}</Text>
+      {phone ? <Text style={styles.phone}>{phone}</Text> : null}
     </TouchableOpacity>
   );
 }
