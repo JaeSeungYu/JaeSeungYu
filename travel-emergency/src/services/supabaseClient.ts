@@ -3,13 +3,11 @@ import { createClient, SupabaseClient } from "@supabase/supabase-js";
 /**
  * Supabase 클라이언트 설정
  *
- * 사용법:
- * 1. https://supabase.com 에서 프로젝트 생성
- * 2. Settings > API 에서 URL과 anon key 복사
- * 3. 아래 값을 실제 프로젝트 값으로 교체
+ * 환경변수는 .env 파일에서 관리 (.env.example 참고)
+ * Expo에서 EXPO_PUBLIC_ 접두사 환경변수는 빌드 시 자동 주입됨
  */
-const SUPABASE_URL = "https://your-project.supabase.co";
-const SUPABASE_ANON_KEY = "your-anon-key";
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
+const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
 
 export const supabase: SupabaseClient = createClient(
   SUPABASE_URL,
