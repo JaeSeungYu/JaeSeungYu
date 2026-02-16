@@ -18,6 +18,7 @@ import { CONSULAR_CALL_CENTER } from "../../src/constants/consulates";
 import { TRAVEL_ADVISORIES } from "../../src/constants/travelAdvisories";
 import { Consulate, EmergencyContact } from "../../src/types";
 import { countryCodeToFlag } from "../../src/utils/countryFlag";
+import { executeEmergencySOS, requestAlimtalkNotification } from "../../src/services/emergencySos";
 
 export default function EmergencyScreen() {
   const [consulate, setConsulate] = useState<Consulate | null>(null);
@@ -58,6 +59,55 @@ export default function EmergencyScreen() {
     }, [loadData])
   );
 
+  /**
+   * 긴급구조신호보내기 핸들러
+   *
+   * 플로우:
+   * 1. 전화발신 (필수) - 인터넷 없어도 동작
+   * 2. 당사 서버에 SOS 신호 전송 (필수 시도, 실패 허용)
+   *    → 서버 수신 후: 발신번호 캡처 → DB 매칭 → 이용자 확인
+   *    → 비상연락망 알림톡 발송 → 경찰신고 등 운영정책 실행
+   */
+  const handleEmergencySOS = () => {
+    Alert.alert(
+      "긴급구조신호 발신",
+      "1588-0404로 전화를 발신하고\n당사 서버에 구조신호를 전송합니다.\n\n인터넷이 없어도 전화발신은 가능합니다.",
+      [
+        { text: "취소", style: "cancel" },
+        {
+          text: "긴급 발신",
+          style: "destructive",
+          onPress: async () => {
+            const result = await executeEmergencySOS("1588-0404");
+
+            if (result.serverNotified) {
+              // 서버 전송 성공: 전화 + API 모두 완료
+              Alert.alert(
+                "구조신호 전송 완료",
+                "전화발신 및 구조신호가 서버에 접수되었습니다.\n\n당사에서 다음 조치를 진행합니다:\n- 이용자 확인\n- 비상연락처 알림톡 발송\n- 필요 시 경찰신고"
+              );
+            } else if (result.callInitiated) {
+              // 전화만 성공: 서버 전송 실패
+              Alert.alert(
+                "전화 발신 완료",
+                "전화가 발신되었습니다.\n\n서버 전송: " +
+                  result.serverMessage +
+                  "\n\n전화 발신번호로 이용자 확인이 가능합니다."
+              );
+            } else {
+              // 모두 실패
+              Alert.alert(
+                "발신 실패",
+                "전화 발신에 실패했습니다.\n직접 1588-0404로 전화해주세요."
+              );
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  /** 긴급 알림톡 발송 핸들러 */
   const handleAlimtalk = async () => {
     if (contacts.length === 0) {
       Alert.alert("알림", "설정에서 비상연락처를 먼저 등록해주세요.");
@@ -65,14 +115,19 @@ export default function EmergencyScreen() {
     }
     Alert.alert(
       "긴급 알림 발송",
-      `등록된 ${contacts.length}명의 비상연락처에\n긴급 알림을 보내시겠습니까?`,
+      `등록된 ${contacts.length}명의 비상연락처에\n긴급 알림을 보내시겠습니까?\n\n알림 내용: 이름, 여행국가, 현재위치, 긴급발생시각`,
       [
         { text: "취소", style: "cancel" },
         {
           text: "발송",
           style: "destructive",
-          onPress: () => {
-            Alert.alert("발송 완료", "긴급 알림이 발송되었습니다.\n(서버 연동 후 실제 발송됩니다)");
+          onPress: async () => {
+            const result = await requestAlimtalkNotification();
+            if (result.success) {
+              Alert.alert("발송 완료", result.message);
+            } else {
+              Alert.alert("발송 실패", result.message);
+            }
           },
         },
       ]
@@ -159,13 +214,26 @@ export default function EmergencyScreen() {
           color="#DC2626"
         />
 
-        <EmergencyButton
-          label="긴급구조신호보내기"
-          subLabel="전화만 걸면 구조신호가 남겨집니다."
-          phone="1588-0404"
-          color="#1D4ED8"
-          style={{ marginTop: 16 }}
-        />
+        {/* 긴급구조신호: 전화발신(필수) + 서버전송(필수시도, 실패허용) */}
+        <TouchableOpacity
+          style={[styles.sosButton, { marginTop: 16 }]}
+          onPress={handleEmergencySOS}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.sosLabel}>긴급구조신호보내기</Text>
+          <Text style={styles.sosSubLabel}>
+            전화발신(필수) + 구조신호 서버전송
+          </Text>
+          <Text style={styles.sosPhone}>1588-0404</Text>
+          <View style={styles.sosBadgeRow}>
+            <View style={styles.sosBadge}>
+              <Text style={styles.sosBadgeText}>전화 (오프라인 OK)</Text>
+            </View>
+            <View style={[styles.sosBadge, styles.sosBadgeApi]}>
+              <Text style={styles.sosBadgeText}>API 전송 (온라인)</Text>
+            </View>
+          </View>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.infoSection}>
@@ -188,6 +256,38 @@ export default function EmergencyScreen() {
           style={{ marginTop: 0 }}
           onPress={handleAlimtalk}
         />
+      </View>
+
+      {/* 긴급구조 프로세스 안내 */}
+      <View style={styles.processCard}>
+        <Text style={styles.processTitle}>긴급구조 프로세스 안내</Text>
+        <View style={styles.processStep}>
+          <Text style={styles.processStepNum}>1</Text>
+          <Text style={styles.processStepText}>
+            긴급구조신호 발신 (전화 + 서버전송)
+          </Text>
+        </View>
+        <View style={styles.processStep}>
+          <Text style={styles.processStepNum}>2</Text>
+          <Text style={styles.processStepText}>
+            당사 발신번호 캡처 및 DB 이용자 확인
+          </Text>
+        </View>
+        <View style={styles.processStep}>
+          <Text style={styles.processStepNum}>3</Text>
+          <Text style={styles.processStepText}>
+            비상연락처 알림톡 자동 발송
+          </Text>
+        </View>
+        <View style={styles.processStep}>
+          <Text style={styles.processStepNum}>4</Text>
+          <Text style={styles.processStepText}>
+            경찰신고 등 당사 운영정책 실행
+          </Text>
+        </View>
+        <Text style={styles.processNote}>
+          * 인터넷이 없어도 전화발신만으로 구조 요청 가능
+        </Text>
       </View>
 
       <View style={styles.consulateInfo}>
@@ -274,6 +374,53 @@ const styles = StyleSheet.create({
   buttonsContainer: {
     marginBottom: 20,
   },
+  // SOS 버튼 (강화된 디자인)
+  sosButton: {
+    backgroundColor: "#1D4ED8",
+    borderRadius: 16,
+    padding: 20,
+    alignItems: "center",
+    shadowColor: "#1D4ED8",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  sosLabel: {
+    color: "#fff",
+    fontSize: 20,
+    fontWeight: "800",
+  },
+  sosSubLabel: {
+    color: "rgba(255,255,255,0.8)",
+    fontSize: 13,
+    marginTop: 4,
+  },
+  sosPhone: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+    marginTop: 8,
+  },
+  sosBadgeRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 10,
+  },
+  sosBadge: {
+    backgroundColor: "rgba(255,255,255,0.2)",
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  sosBadgeApi: {
+    backgroundColor: "rgba(255,255,255,0.15)",
+  },
+  sosBadgeText: {
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: "600",
+  },
   infoSection: {
     marginBottom: 20,
   },
@@ -285,6 +432,50 @@ const styles = StyleSheet.create({
   },
   alimtalkSection: {
     marginBottom: 20,
+  },
+  // 긴급구조 프로세스 안내
+  processCard: {
+    backgroundColor: "#EFF6FF",
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#BFDBFE",
+    marginBottom: 16,
+  },
+  processTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#1E40AF",
+    marginBottom: 12,
+  },
+  processStep: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  processStepNum: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: "#1D4ED8",
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "700",
+    textAlign: "center",
+    lineHeight: 22,
+    marginRight: 10,
+  },
+  processStepText: {
+    flex: 1,
+    fontSize: 14,
+    color: "#1E3A5F",
+    lineHeight: 20,
+  },
+  processNote: {
+    fontSize: 12,
+    color: "#6B7280",
+    marginTop: 8,
+    fontStyle: "italic",
   },
   consulateInfo: {
     backgroundColor: "#fff",
