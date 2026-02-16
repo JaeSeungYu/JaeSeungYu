@@ -29,22 +29,9 @@ export function EmergencyButton({ label, subLabel, phone, color, style, onPress 
     const cleanPhone = phone.replace(/[^+\d]/g, "");
     const url = `tel:${cleanPhone}`;
 
-    Alert.alert(
-      "전화 연결",
-      `${label}\n${phone}\n\n전화를 연결하시겠습니까?`,
-      [
-        { text: "취소", style: "cancel" },
-        {
-          text: "전화 걸기",
-          style: "default",
-          onPress: () => {
-            Linking.openURL(url).catch(() => {
-              Alert.alert("오류", "전화 앱을 열 수 없습니다.");
-            });
-          },
-        },
-      ]
-    );
+    Linking.openURL(url).catch(() => {
+      Alert.alert("오류", "전화 앱을 열 수 없습니다.");
+    });
   };
 
   return (
