@@ -17,6 +17,7 @@ import {
   getEmergencyContacts,
   deleteEmergencyContact,
   setSetting,
+  getLocalDataVersion,
 } from "../../src/db/database";
 import { EmergencyContact } from "../../src/types";
 import { countryCodeToFlag } from "../../src/utils/countryFlag";
@@ -49,6 +50,9 @@ export default function SettingsScreen() {
   const [verifyPhone, setVerifyPhone] = useState("");
   const [verifying, setVerifying] = useState(false);
   const [sendingCode, setSendingCode] = useState(false);
+  // 데이터 버전 상태
+  const [consulatesVersion, setConsulatesVersion] = useState(0);
+  const [advisoriesVersion, setAdvisoriesVersion] = useState(0);
 
   const loadData = useCallback(async () => {
     const code = await getSetting("selected_country");
@@ -83,6 +87,12 @@ export default function SettingsScreen() {
     // 마지막 동기화 시간 로드
     const syncTime = await getSetting("last_synced_at");
     setLastSyncedAt(syncTime);
+
+    // 마스터 데이터 버전 로드
+    const cVer = await getLocalDataVersion("master_consulates");
+    const aVer = await getLocalDataVersion("master_travel_advisories");
+    setConsulatesVersion(cVer);
+    setAdvisoriesVersion(aVer);
   }, []);
 
   useFocusEffect(
@@ -502,6 +512,19 @@ export default function SettingsScreen() {
             </TouchableOpacity>
           </View>
 
+          {/* 데이터 버전 */}
+          <View style={styles.dataVersionSection}>
+            <Text style={styles.dataVersionTitle}>데이터 버전</Text>
+            <View style={styles.dataVersionRow}>
+              <Text style={styles.dataVersionLabel}>영사관 정보</Text>
+              <Text style={styles.dataVersionValue}>v{consulatesVersion}</Text>
+            </View>
+            <View style={styles.dataVersionRow}>
+              <Text style={styles.dataVersionLabel}>여행 주의사항</Text>
+              <Text style={styles.dataVersionValue}>v{advisoriesVersion}</Text>
+            </View>
+          </View>
+
           {/* 사업자 정보 */}
           <View style={styles.businessInfo}>
             <Text style={styles.businessInfoText}>사업자등록번호: 585-13-02310</Text>
@@ -825,6 +848,36 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "700",
     color: "#6B7280",
+  },
+  // 데이터 버전
+  dataVersionSection: {
+    marginTop: 24,
+    backgroundColor: "#F9FAFB",
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+  dataVersionTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#6B7280",
+    marginBottom: 8,
+  },
+  dataVersionRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 4,
+  },
+  dataVersionLabel: {
+    fontSize: 13,
+    color: "#9CA3AF",
+  },
+  dataVersionValue: {
+    fontSize: 13,
+    color: "#9CA3AF",
+    fontWeight: "600",
   },
   // 사업자 정보
   businessInfo: {
