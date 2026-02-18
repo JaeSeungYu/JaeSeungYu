@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { Text, Platform } from "react-native";
+import { Text, View, Image, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function TabLayout() {
@@ -32,7 +32,18 @@ export default function TabLayout() {
         name="index"
         options={{
           title: "긴급 연락",
-          headerTitle: "구해줘여행",
+          headerTitle: () => (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <Image
+                source={require("../../assets/header-logo.png")}
+                style={{ width: 28, height: 28 }}
+                resizeMode="contain"
+              />
+              <Text style={{ color: "#fff", fontSize: 18, fontWeight: "700" }}>
+                구해줘여행
+              </Text>
+            </View>
+          ),
           tabBarIcon: ({ color }) => (
             <Text style={{ fontSize: 24, color }}>🆘</Text>
           ),
