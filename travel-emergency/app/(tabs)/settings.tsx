@@ -501,6 +501,12 @@ export default function SettingsScreen() {
               )}
             </TouchableOpacity>
           </View>
+
+          {/* 사업자 정보 */}
+          <View style={styles.businessInfo}>
+            <Text style={styles.businessInfoText}>사업자등록번호: 585-13-02310</Text>
+            <Text style={styles.businessInfoText}>무한SDI</Text>
+          </View>
         </>
       }
     />
@@ -819,5 +825,19 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "700",
     color: "#6B7280",
+  },
+  // 사업자 정보
+  businessInfo: {
+    marginTop: 32,
+    marginBottom: 8,
+    alignItems: "center",
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#E5E7EB",
+  },
+  businessInfoText: {
+    fontSize: 12,
+    color: "#9CA3AF",
+    lineHeight: 18,
   },
 });
