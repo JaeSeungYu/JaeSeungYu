@@ -18,7 +18,7 @@ import { CONSULAR_CALL_CENTER } from "../../src/constants/consulates";
 import { TRAVEL_ADVISORIES } from "../../src/constants/travelAdvisories";
 import { Consulate, EmergencyContact } from "../../src/types";
 import { countryCodeToFlag } from "../../src/utils/countryFlag";
-import { executeEmergencySOS, requestAlimtalkNotification } from "../../src/services/emergencySos";
+import { sendSOSSignalOnly, requestAlimtalkNotification } from "../../src/services/emergencySos";
 import { updateGpsInBackground } from "../../src/services/cloudSync";
 
 export default function EmergencyScreen() {
@@ -64,16 +64,12 @@ export default function EmergencyScreen() {
   /**
    * 긴급구조신호보내기 핸들러
    *
-   * 플로우:
-   * 1. 전화발신 (필수) - 인터넷 없어도 동작
-   * 2. 당사 서버에 SOS 신호 전송 (필수 시도, 실패 허용)
-   *    → 서버 수신 후: 발신번호 캡처 → DB 매칭 → 이용자 확인
-   *    → 비상연락망 알림톡 발송 → 경찰신고 등 운영정책 실행
+   * 서버에 SOS 신호 전송 → 비상연락망 SMS/알림톡 발송
    */
   const handleEmergencySOS = () => {
     Alert.alert(
       "긴급구조신호 발신",
-      "1588-0404로 전화를 발신하고\n당사 서버에 구조신호를 전송합니다.\n\n인터넷이 없어도 전화발신은 가능합니다.",
+      "당사 서버에 구조신호를 전송합니다.\n비상연락망에 등록된 연락처로 알림이 발송됩니다.",
       [
         { text: "취소", style: "cancel" },
         {
@@ -82,27 +78,17 @@ export default function EmergencyScreen() {
           onPress: async () => {
             // 백그라운드 GPS 업데이트 (데이터 연결 시에만)
             updateGpsInBackground();
-            const result = await executeEmergencySOS("1588-0404");
+            const result = await sendSOSSignalOnly();
 
-            if (result.serverNotified) {
-              // 서버 전송 성공: 전화 + API 모두 완료
+            if (result.success) {
               Alert.alert(
                 "구조신호 전송 완료",
-                "전화발신 및 구조신호가 서버에 접수되었습니다.\n\n당사에서 다음 조치를 진행합니다:\n- 이용자 확인\n- 비상연락처 알림톡 발송\n- 필요 시 경찰신고"
-              );
-            } else if (result.callInitiated) {
-              // 전화만 성공: 서버 전송 실패
-              Alert.alert(
-                "전화 발신 완료",
-                "전화가 발신되었습니다.\n\n서버 전송: " +
-                  result.serverMessage +
-                  "\n\n전화 발신번호로 이용자 확인이 가능합니다."
+                "구조신호가 서버에 접수되었습니다.\n\n비상연락망으로 알림이 발송됩니다."
               );
             } else {
-              // 모두 실패
               Alert.alert(
-                "발신 실패",
-                "전화 발신에 실패했습니다.\n직접 1588-0404로 전화해주세요."
+                "전송 실패",
+                result.message + "\n\n네트워크 연결을 확인해주세요."
               );
             }
           },
@@ -245,26 +231,25 @@ export default function EmergencyScreen() {
               <View style={styles.sosInfoItem}>
                 <Text style={styles.sosInfoBullet}>•</Text>
                 <Text style={styles.sosInfoText}>
-                  긴급구조신호는 전화걸기만으로 구조신호가 접수됩니다.
+                  비상연락망에 등록된 전화번호로 SMS, 알림톡이 발송됩니다.
                 </Text>
               </View>
               <View style={styles.sosInfoItem}>
                 <Text style={styles.sosInfoBullet}>•</Text>
                 <Text style={styles.sosInfoText}>
-                  음성통화, 문자등의 행동이 불가한 경우에만 사용하세요.
+                  당사 고객센터를 통해 추가로 대사관에 확인 요청이 될 수 있습니다.
                 </Text>
               </View>
               <View style={styles.sosInfoItem}>
-                <Text style={styles.sosInfoBullet}>•</Text>
-                <Text style={styles.sosInfoText}>
-                  구조신호 접수 후 당사 콜센타에서 경찰등 유관기관에 연락을 취합니다.
+                <Text style={styles.sosInfoBulletWarn}>•</Text>
+                <Text style={styles.sosInfoTextWarn}>
+                  본 기능은 사용자 본인에게 모든 책임이 있음을 고지합니다.
                 </Text>
               </View>
               <View style={styles.sosInfoItem}>
-                <Text style={styles.sosInfoBullet}>•</Text>
-                <Text style={styles.sosInfoText}>
-                  데이터연결이 되어 있는 경우, 비상연락망의 연락처로 추가 알림이 전송됩니다.{"\n"}
-                  (데이터연결이 안되어 있을경우에는 미전송)
+                <Text style={styles.sosInfoBulletWarn}>•</Text>
+                <Text style={styles.sosInfoTextWarn}>
+                  허위신고 등으로 가족들이 피해를 볼 수 있습니다.
                 </Text>
               </View>
             </View>
@@ -280,14 +265,14 @@ export default function EmergencyScreen() {
 
       <View style={styles.buttonsContainer}>
         <EmergencyButton
-          label="영사관 긴급 전화"
+          label="영사관 전화연결"
           subLabel={consulate.name}
           phone={consulate.emergency_phone || consulate.phone}
           color="#DC2626"
           onPress={handleConsulateCall}
         />
 
-        {/* 긴급구조신호: 전화발신(필수) + 서버전송(필수시도, 실패허용) */}
+        {/* 긴급구조신호: 서버 SOS 전송 */}
         <TouchableOpacity
           style={[styles.sosButton, { marginTop: 16 }]}
           onPress={handleEmergencySOS}
@@ -305,18 +290,6 @@ export default function EmergencyScreen() {
             >
               <Text style={styles.sosInfoButtonText}>i</Text>
             </TouchableOpacity>
-          </View>
-          <Text style={styles.sosSubLabel}>
-            전화발신(필수) + 구조신호 서버전송
-          </Text>
-          <Text style={styles.sosPhone}>1588-0404</Text>
-          <View style={styles.sosBadgeRow}>
-            <View style={styles.sosBadge}>
-              <Text style={styles.sosBadgeText}>전화 (오프라인 OK)</Text>
-            </View>
-            <View style={[styles.sosBadge, styles.sosBadgeApi]}>
-              <Text style={styles.sosBadgeText}>API 전송 (온라인)</Text>
-            </View>
           </View>
         </TouchableOpacity>
       </View>
@@ -496,36 +469,6 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     fontStyle: "italic",
   },
-  sosSubLabel: {
-    color: "rgba(255,255,255,0.8)",
-    fontSize: 13,
-    marginTop: 4,
-  },
-  sosPhone: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-    marginTop: 8,
-  },
-  sosBadgeRow: {
-    flexDirection: "row",
-    gap: 8,
-    marginTop: 10,
-  },
-  sosBadge: {
-    backgroundColor: "rgba(255,255,255,0.2)",
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  sosBadgeApi: {
-    backgroundColor: "rgba(255,255,255,0.15)",
-  },
-  sosBadgeText: {
-    color: "#fff",
-    fontSize: 11,
-    fontWeight: "600",
-  },
   infoSection: {
     marginBottom: 20,
   },
@@ -665,6 +608,20 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     color: "#374151",
+    lineHeight: 22,
+  },
+  sosInfoBulletWarn: {
+    fontSize: 16,
+    color: "#DC2626",
+    fontWeight: "700",
+    marginRight: 8,
+    lineHeight: 22,
+  },
+  sosInfoTextWarn: {
+    flex: 1,
+    fontSize: 15,
+    color: "#DC2626",
+    fontWeight: "700",
     lineHeight: 22,
   },
   modalCloseButton: {

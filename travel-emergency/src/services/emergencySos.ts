@@ -1,44 +1,21 @@
-import * as Linking from "expo-linking";
-import { SOSPayload, SOSResponse } from "../types";
+import { SOSPayload } from "../types";
 import { getSetting, getEmergencyContacts } from "../db/database";
 import { getOrCreateDeviceId } from "./cloudSync";
 import { sendSOSSignal, requestAlimtalk } from "./supabaseClient";
 
 /**
- * 긴급구조 SOS 프로세스
+ * 긴급구조 SOS 신호 전송 (서버 전송 전용)
  *
  * 플로우:
- * 1. 전화발신 (필수) - 인터넷 없어도 동작
- * 2. Supabase에 SOS 신호 전송 (필수 시도, 실패 허용)
- *    - 성공 시: sos_logs 테이블에 기록 → Edge Function으로 알림톡 발송 → 운영 대시보드 확인
- *    - 실패 시: 전화발신만으로 발신번호 기반 후속조치 가능
+ * 1. Supabase에 SOS 신호 전송
+ * 2. 비상연락망 SMS/알림톡 발송 트리거
  */
-export async function executeEmergencySOS(
-  phoneNumber: string
-): Promise<{
-  callInitiated: boolean;
-  serverNotified: boolean;
-  serverMessage: string;
+export async function sendSOSSignalOnly(): Promise<{
+  success: boolean;
+  message: string;
 }> {
-  // 1단계: 전화발신 (필수)
-  let callInitiated = false;
   try {
-    const telUrl = `tel:${phoneNumber}`;
-    const canOpen = await Linking.canOpenURL(telUrl);
-    if (canOpen) {
-      await Linking.openURL(telUrl);
-      callInitiated = true;
-    }
-  } catch {
-    callInitiated = false;
-  }
-
-  // 2단계: Supabase에 SOS 신호 전송 (필수 시도, 실패 허용)
-  let serverNotified = false;
-  let serverMessage = "";
-
-  try {
-    const payload = await buildSOSPayload(callInitiated);
+    const payload = await buildSOSPayload();
 
     await sendSOSSignal({
       user_phone: payload.user_phone,
@@ -46,24 +23,26 @@ export async function executeEmergencySOS(
       travel_country: payload.travel_country,
       gps_latitude: payload.gps_latitude,
       gps_longitude: payload.gps_longitude,
-      sos_type: payload.sos_type,
+      sos_type: "CALL_AND_API",
       device_id: payload.device_id,
     });
 
-    serverNotified = true;
-    serverMessage = "SOS 신호가 서버에 접수되었습니다.";
+    return {
+      success: true,
+      message: "SOS 신호가 서버에 접수되었습니다.",
+    };
   } catch {
-    serverNotified = false;
-    serverMessage = "서버 전송 실패 - 전화발신으로 구조 요청이 접수됩니다.";
+    return {
+      success: false,
+      message: "서버 전송 실패",
+    };
   }
-
-  return { callInitiated, serverNotified, serverMessage };
 }
 
 /**
  * SOS 페이로드 구성
  */
-async function buildSOSPayload(callInitiated: boolean): Promise<SOSPayload> {
+async function buildSOSPayload(): Promise<SOSPayload> {
   const [userName, userPhone, travelCountry, gpsLat, gpsLng] =
     await Promise.all([
       getSetting("user_name"),
@@ -88,7 +67,7 @@ async function buildSOSPayload(callInitiated: boolean): Promise<SOSPayload> {
     gps_latitude: gpsLat ? parseFloat(gpsLat) : null,
     gps_longitude: gpsLng ? parseFloat(gpsLng) : null,
     sos_timestamp: new Date().toISOString(),
-    sos_type: callInitiated ? "CALL_AND_API" : "CALL_ONLY",
+    sos_type: "CALL_AND_API",
     device_id: deviceId,
   };
 }
