@@ -581,17 +581,17 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   addButton: {
-    backgroundColor: "#EFF6FF",
+    backgroundColor: "#FFF7ED",
     borderRadius: 12,
     padding: 16,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#BFDBFE",
+    borderColor: "#FED7AA",
     borderStyle: "dashed",
     marginBottom: 8,
   },
   addButtonText: {
-    color: "#2563EB",
+    color: "#EA580C",
     fontSize: 15,
     fontWeight: "600",
   },
@@ -674,7 +674,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   gpsButton: {
-    backgroundColor: "#2563EB",
+    backgroundColor: "#EA580C",
     borderRadius: 10,
     padding: 14,
     alignItems: "center",
@@ -758,7 +758,7 @@ const styles = StyleSheet.create({
   verifyPhoneText: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#1D4ED8",
+    color: "#EA580C",
     textAlign: "center",
     marginBottom: 16,
   },
@@ -785,7 +785,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   verifyButton: {
-    backgroundColor: "#2563EB",
+    backgroundColor: "#EA580C",
     borderRadius: 10,
     padding: 14,
     alignItems: "center",
@@ -805,7 +805,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   resendButtonText: {
-    color: "#2563EB",
+    color: "#EA580C",
     fontSize: 14,
     fontWeight: "600",
   },

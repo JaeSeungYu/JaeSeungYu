@@ -126,8 +126,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   itemSelected: {
-    borderColor: "#DC2626",
-    backgroundColor: "#FEF2F2",
+    borderColor: "#EA580C",
+    backgroundColor: "#FFF7ED",
   },
   itemName: {
     fontSize: 17,
@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
     color: "#1F2937",
   },
   itemNameSelected: {
-    color: "#DC2626",
+    color: "#EA580C",
   },
   itemEnName: {
     fontSize: 13,
@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
   },
   checkMark: {
     fontSize: 20,
-    color: "#DC2626",
+    color: "#EA580C",
     fontWeight: "700",
   },
   empty: {

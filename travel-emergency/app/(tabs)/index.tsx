@@ -268,7 +268,7 @@ export default function EmergencyScreen() {
           label="영사관 전화연결"
           subLabel={consulate.name}
           phone={consulate.emergency_phone || consulate.phone}
-          color="#DC2626"
+          color="#EA580C"
           onPress={handleConsulateCall}
         />
 
@@ -400,17 +400,17 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   countryBanner: {
-    backgroundColor: "#FEF2F2",
+    backgroundColor: "#FFF7ED",
     borderRadius: 12,
     padding: 16,
     marginBottom: 20,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#FECACA",
+    borderColor: "#FED7AA",
   },
   countryLabel: {
     fontSize: 13,
-    color: "#991B1B",
+    color: "#9A3412",
     fontWeight: "500",
   },
   countryNameRow: {
@@ -423,13 +423,13 @@ const styles = StyleSheet.create({
   countryName: {
     fontSize: 24,
     fontWeight: "800",
-    color: "#DC2626",
+    color: "#EA580C",
   },
   advisoryButton: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: "#DC2626",
+    backgroundColor: "#EA580C",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -443,14 +443,14 @@ const styles = StyleSheet.create({
   },
   // SOS 버튼 (EmergencyButton과 동일 높이)
   sosButton: {
-    backgroundColor: "#1D4ED8",
+    backgroundColor: "#C2410C",
     borderRadius: 20,
     paddingVertical: 32,
     paddingHorizontal: 24,
     alignItems: "center",
     justifyContent: "center",
     minHeight: 140,
-    shadowColor: "#1D4ED8",
+    shadowColor: "#C2410C",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
@@ -494,17 +494,17 @@ const styles = StyleSheet.create({
   },
   // 긴급구조 프로세스 안내
   processCard: {
-    backgroundColor: "#EFF6FF",
+    backgroundColor: "#FFF7ED",
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#BFDBFE",
+    borderColor: "#FED7AA",
     marginBottom: 16,
   },
   processTitle: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#1E40AF",
+    color: "#9A3412",
     marginBottom: 12,
   },
   processStep: {
@@ -516,7 +516,7 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: "#1D4ED8",
+    backgroundColor: "#EA580C",
     color: "#fff",
     fontSize: 12,
     fontWeight: "700",
@@ -527,7 +527,7 @@ const styles = StyleSheet.create({
   processStepText: {
     flex: 1,
     fontSize: 14,
-    color: "#1E3A5F",
+    color: "#431407",
     lineHeight: 20,
   },
   processNote: {
@@ -617,7 +617,7 @@ const styles = StyleSheet.create({
   },
   sosInfoBullet: {
     fontSize: 16,
-    color: "#1D4ED8",
+    color: "#EA580C",
     fontWeight: "700",
     marginRight: 8,
     lineHeight: 22,

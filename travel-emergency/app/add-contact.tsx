@@ -141,8 +141,8 @@ const styles = StyleSheet.create({
     borderColor: "#E5E7EB",
   },
   chipSelected: {
-    backgroundColor: "#DC2626",
-    borderColor: "#DC2626",
+    backgroundColor: "#EA580C",
+    borderColor: "#EA580C",
   },
   chipText: {
     fontSize: 14,
@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
     color: "#fff",
   },
   saveButton: {
-    backgroundColor: "#DC2626",
+    backgroundColor: "#EA580C",
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: "center",
