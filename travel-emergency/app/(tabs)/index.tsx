@@ -13,9 +13,8 @@ import {
 import { useFocusEffect } from "expo-router";
 import * as Linking from "expo-linking";
 import { EmergencyButton } from "../../src/components/EmergencyButton";
-import { getConsulatesByCountry, getSetting, getEmergencyContacts } from "../../src/db/database";
+import { getConsulatesByCountry, getSetting, getEmergencyContacts, getTravelAdvisory } from "../../src/db/database";
 import { CONSULAR_CALL_CENTER } from "../../src/constants/consulates";
-import { TRAVEL_ADVISORIES } from "../../src/constants/travelAdvisories";
 import { Consulate, EmergencyContact } from "../../src/types";
 import { countryCodeToFlag } from "../../src/utils/countryFlag";
 import { sendSOSSignalOnly, requestAlimtalkNotification } from "../../src/services/emergencySos";
@@ -27,6 +26,7 @@ export default function EmergencyScreen() {
   const [countryName, setCountryName] = useState<string>("");
   const [contacts, setContacts] = useState<EmergencyContact[]>([]);
   const [loading, setLoading] = useState(true);
+  const [advisory, setAdvisory] = useState<{ title: string; items: string[] } | null>(null);
   const [advisoryVisible, setAdvisoryVisible] = useState(false);
   const [sosInfoVisible, setSosInfoVisible] = useState(false);
 
@@ -41,10 +41,14 @@ export default function EmergencyScreen() {
           setCountryCode(code);
           setCountryName(results[0].country_name_ko);
         }
+        // 여행 주의사항을 로컬 DB에서 조회
+        const adv = await getTravelAdvisory(code);
+        setAdvisory(adv);
       } else {
         setConsulate(null);
         setCountryCode("");
         setCountryName("");
+        setAdvisory(null);
       }
       const savedContacts = await getEmergencyContacts();
       setContacts(savedContacts);
@@ -172,7 +176,7 @@ export default function EmergencyScreen() {
             {countryCode ? countryCodeToFlag(countryCode) + " " : ""}
             {countryName}
           </Text>
-          {countryCode && TRAVEL_ADVISORIES[countryCode] && (
+          {advisory && (
             <TouchableOpacity
               style={styles.advisoryButton}
               onPress={() => setAdvisoryVisible(true)}
@@ -194,10 +198,10 @@ export default function EmergencyScreen() {
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>
               {countryCode ? countryCodeToFlag(countryCode) + " " : ""}
-              {TRAVEL_ADVISORIES[countryCode]?.title ?? "주의사항"}
+              {advisory?.title ?? "주의사항"}
             </Text>
             <FlatList
-              data={TRAVEL_ADVISORIES[countryCode]?.items ?? []}
+              data={advisory?.items ?? []}
               keyExtractor={(_, i) => i.toString()}
               renderItem={({ item, index }) => (
                 <View style={styles.advisoryItem}>

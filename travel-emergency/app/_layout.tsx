@@ -4,6 +4,7 @@ import { Stack, SplashScreen } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider, initialWindowMetrics } from "react-native-safe-area-context";
 import { getDatabase } from "../src/db/database";
+import { syncMasterData } from "../src/services/masterDataSync";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -27,7 +28,11 @@ export default function RootLayout() {
 
   useEffect(() => {
     getDatabase()
-      .then(() => setDbReady(true))
+      .then(() => {
+        setDbReady(true);
+        // DB 초기화 완료 후 백그라운드로 마스터 데이터 동기화
+        syncMasterData().catch(() => {});
+      })
       .catch(console.error)
       .finally(() => SplashScreen.hideAsync());
   }, []);

@@ -1,5 +1,6 @@
 import * as SQLite from "expo-sqlite";
 import { CONSULATES } from "../constants/consulates";
+import { TRAVEL_ADVISORIES } from "../constants/travelAdvisories";
 import { Consulate, EmergencyContact } from "../types";
 
 let db: SQLite.SQLiteDatabase | null = null;
@@ -36,13 +37,27 @@ async function initDatabase(database: SQLite.SQLiteDatabase): Promise<void> {
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS travel_advisories (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      country_code TEXT NOT NULL UNIQUE,
+      title TEXT NOT NULL,
+      items TEXT NOT NULL DEFAULT '[]'
+    );
+
+    CREATE TABLE IF NOT EXISTS local_data_versions (
+      table_name TEXT PRIMARY KEY,
+      version INTEGER NOT NULL DEFAULT 0,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
   `);
 
-  const count = await database.getFirstAsync<{ cnt: number }>(
+  // 영사관 초기 데이터 시드
+  const consulateCount = await database.getFirstAsync<{ cnt: number }>(
     "SELECT COUNT(*) as cnt FROM consulates"
   );
 
-  if (!count || count.cnt === 0) {
+  if (!consulateCount || consulateCount.cnt === 0) {
     for (const c of CONSULATES) {
       await database.runAsync(
         `INSERT INTO consulates (country_code, country_name_ko, country_name_en, name, phone, address, emergency_phone)
@@ -56,6 +71,33 @@ async function initDatabase(database: SQLite.SQLiteDatabase): Promise<void> {
         c.emergency_phone ?? null
       );
     }
+  }
+
+  // 여행 주의사항 초기 데이터 시드
+  const advisoryCount = await database.getFirstAsync<{ cnt: number }>(
+    "SELECT COUNT(*) as cnt FROM travel_advisories"
+  );
+
+  if (!advisoryCount || advisoryCount.cnt === 0) {
+    for (const [code, data] of Object.entries(TRAVEL_ADVISORIES)) {
+      await database.runAsync(
+        `INSERT INTO travel_advisories (country_code, title, items) VALUES (?, ?, ?)`,
+        code,
+        data.title,
+        JSON.stringify(data.items)
+      );
+    }
+  }
+
+  // 로컬 데이터 버전 초기화
+  const versionCount = await database.getFirstAsync<{ cnt: number }>(
+    "SELECT COUNT(*) as cnt FROM local_data_versions"
+  );
+
+  if (!versionCount || versionCount.cnt === 0) {
+    await database.runAsync(
+      `INSERT INTO local_data_versions (table_name, version) VALUES ('master_consulates', 0), ('master_travel_advisories', 0)`
+    );
   }
 }
 
@@ -116,4 +158,80 @@ export async function setSetting(key: string, value: string): Promise<void> {
     key,
     value
   );
+}
+
+// ─── 여행 주의사항 (로컬 DB) ───
+
+export async function getTravelAdvisory(
+  countryCode: string
+): Promise<{ title: string; items: string[] } | null> {
+  const database = await getDatabase();
+  const row = await database.getFirstAsync<{ title: string; items: string }>(
+    "SELECT title, items FROM travel_advisories WHERE country_code = ?",
+    countryCode
+  );
+  if (!row) return null;
+  return { title: row.title, items: JSON.parse(row.items) };
+}
+
+// ─── 로컬 데이터 버전 관리 ───
+
+export async function getLocalDataVersion(
+  tableName: string
+): Promise<number> {
+  const database = await getDatabase();
+  const row = await database.getFirstAsync<{ version: number }>(
+    "SELECT version FROM local_data_versions WHERE table_name = ?",
+    tableName
+  );
+  return row?.version ?? 0;
+}
+
+export async function setLocalDataVersion(
+  tableName: string,
+  version: number
+): Promise<void> {
+  const database = await getDatabase();
+  await database.runAsync(
+    "INSERT OR REPLACE INTO local_data_versions (table_name, version, updated_at) VALUES (?, ?, datetime('now'))",
+    tableName,
+    version
+  );
+}
+
+// ─── 마스터 데이터 일괄 갱신 ───
+
+export async function replaceAllConsulates(
+  data: Omit<Consulate, "id">[]
+): Promise<void> {
+  const database = await getDatabase();
+  await database.runAsync("DELETE FROM consulates");
+  for (const c of data) {
+    await database.runAsync(
+      `INSERT INTO consulates (country_code, country_name_ko, country_name_en, name, phone, address, emergency_phone)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      c.country_code,
+      c.country_name_ko,
+      c.country_name_en,
+      c.name,
+      c.phone,
+      c.address,
+      c.emergency_phone ?? null
+    );
+  }
+}
+
+export async function replaceAllTravelAdvisories(
+  data: { country_code: string; title: string; items: string[] }[]
+): Promise<void> {
+  const database = await getDatabase();
+  await database.runAsync("DELETE FROM travel_advisories");
+  for (const d of data) {
+    await database.runAsync(
+      `INSERT INTO travel_advisories (country_code, title, items) VALUES (?, ?, ?)`,
+      d.country_code,
+      d.title,
+      JSON.stringify(d.items)
+    );
+  }
 }

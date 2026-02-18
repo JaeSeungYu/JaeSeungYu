@@ -182,3 +182,61 @@ export async function verifyVerificationCode(
   if (error) throw error;
   return data?.verified === true;
 }
+
+// ─── 마스터 데이터 (원격 → 로컬 동기화용) ───
+
+/** 서버 데이터 버전 조회 */
+export async function fetchDataVersions(): Promise<
+  { table_name: string; version: number }[]
+> {
+  const { data, error } = await supabase
+    .from("data_versions")
+    .select("table_name, version");
+
+  if (error) throw error;
+  return data ?? [];
+}
+
+/** 마스터 영사관 전체 데이터 조회 */
+export async function fetchMasterConsulates(): Promise<
+  {
+    country_code: string;
+    country_name_ko: string;
+    country_name_en: string;
+    name: string;
+    phone: string;
+    address: string;
+    emergency_phone: string | null;
+  }[]
+> {
+  const { data, error } = await supabase
+    .from("master_consulates")
+    .select(
+      "country_code, country_name_ko, country_name_en, name, phone, address, emergency_phone"
+    )
+    .order("country_name_ko");
+
+  if (error) throw error;
+  return data ?? [];
+}
+
+/** 마스터 여행 주의사항 전체 데이터 조회 */
+export async function fetchMasterTravelAdvisories(): Promise<
+  {
+    country_code: string;
+    title: string;
+    items: string[];
+  }[]
+> {
+  const { data, error } = await supabase
+    .from("master_travel_advisories")
+    .select("country_code, title, items")
+    .order("country_code");
+
+  if (error) throw error;
+  return (data ?? []).map((row) => ({
+    country_code: row.country_code,
+    title: row.title,
+    items: typeof row.items === "string" ? JSON.parse(row.items) : row.items,
+  }));
+}
