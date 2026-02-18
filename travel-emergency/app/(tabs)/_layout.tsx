@@ -32,7 +32,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: "긴급 연락",
-          headerTitle: "여행 긴급 도우미",
+          headerTitle: "구해줘여행",
           tabBarIcon: ({ color }) => (
             <Text style={{ fontSize: 24, color }}>🆘</Text>
           ),

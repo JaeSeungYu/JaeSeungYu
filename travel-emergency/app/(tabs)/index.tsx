@@ -353,7 +353,15 @@ export default function EmergencyScreen() {
         <Text style={styles.consulateInfoTitle}>영사관 정보</Text>
         <Text style={styles.consulateInfoText}>{consulate.name}</Text>
         <Text style={styles.consulateInfoText}>📞 {consulate.phone}</Text>
-        <Text style={styles.consulateInfoText}>📍 {consulate.address}</Text>
+        <TouchableOpacity
+          onPress={() => {
+            const query = encodeURIComponent(consulate.address);
+            Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${query}`);
+          }}
+          activeOpacity={0.6}
+        >
+          <Text style={styles.consulateAddressLink}>📍 {consulate.address}</Text>
+        </TouchableOpacity>
       </View>
     </ScrollView>
   );
@@ -433,17 +441,20 @@ const styles = StyleSheet.create({
   buttonsContainer: {
     marginBottom: 20,
   },
-  // SOS 버튼 (강화된 디자인)
+  // SOS 버튼 (EmergencyButton과 동일 높이)
   sosButton: {
     backgroundColor: "#1D4ED8",
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 20,
+    paddingVertical: 32,
+    paddingHorizontal: 24,
     alignItems: "center",
+    justifyContent: "center",
+    minHeight: 140,
     shadowColor: "#1D4ED8",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 4,
   },
   sosLabelRow: {
     flexDirection: "row",
@@ -543,6 +554,13 @@ const styles = StyleSheet.create({
     color: "#4B5563",
     marginBottom: 4,
     lineHeight: 20,
+  },
+  consulateAddressLink: {
+    fontSize: 14,
+    color: "#2563EB",
+    marginBottom: 4,
+    lineHeight: 20,
+    textDecorationLine: "underline",
   },
   modalOverlay: {
     flex: 1,
