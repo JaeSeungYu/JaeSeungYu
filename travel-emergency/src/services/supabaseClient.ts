@@ -134,3 +134,51 @@ export async function requestAlimtalk(
   if (error) throw error;
   return data;
 }
+
+// ─── 전화번호 중복 확인 ───
+
+export async function checkPhoneDuplicate(
+  userPhone: string,
+  deviceId: string
+): Promise<{ exists: boolean; sameDevice: boolean }> {
+  const { data, error } = await supabase
+    .from("users")
+    .select("device_id")
+    .eq("user_phone", userPhone)
+    .maybeSingle();
+
+  if (error) throw error;
+
+  if (!data) {
+    return { exists: false, sameDevice: false };
+  }
+
+  return {
+    exists: true,
+    sameDevice: data.device_id === deviceId,
+  };
+}
+
+// ─── 인증코드 요청 (앱 PUSH 발송) ───
+
+export async function requestVerificationCode(
+  userPhone: string
+): Promise<void> {
+  const { error } = await supabase.functions.invoke("send-verification-code", {
+    body: { user_phone: userPhone },
+  });
+  if (error) throw error;
+}
+
+// ─── 인증코드 검증 ───
+
+export async function verifyVerificationCode(
+  userPhone: string,
+  code: string
+): Promise<boolean> {
+  const { data, error } = await supabase.functions.invoke("verify-code", {
+    body: { user_phone: userPhone, code },
+  });
+  if (error) throw error;
+  return data?.verified === true;
+}

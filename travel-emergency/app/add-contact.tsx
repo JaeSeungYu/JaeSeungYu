@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { addEmergencyContact, getEmergencyContacts } from "../src/db/database";
+import { syncContactsToServer } from "../src/services/cloudSync";
 
 const RELATIONSHIPS = ["배우자", "부모", "자녀", "형제/자매", "친구", "기타"];
 
@@ -41,6 +42,8 @@ export default function AddContactScreen() {
     }
 
     await addEmergencyContact(name.trim(), phone.trim(), relationship);
+    // 자동 서버 동기화
+    syncContactsToServer().catch(() => {});
     router.back();
   };
 

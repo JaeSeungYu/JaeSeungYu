@@ -8,6 +8,7 @@ import {
   Alert,
   TextInput,
   ActivityIndicator,
+  Modal,
 } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import {
@@ -23,6 +24,9 @@ import {
   syncProfileToServer,
   syncContactsToServer,
   syncLocationToServer,
+  checkPhoneOwnership,
+  sendVerificationCode,
+  verifyPhoneCode,
 } from "../../src/services/cloudSync";
 
 export default function SettingsScreen() {
@@ -39,6 +43,12 @@ export default function SettingsScreen() {
   // 서버 동기화 상태
   const [syncing, setSyncing] = useState(false);
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
+  // 전화번호 인증 상태
+  const [verifyModalVisible, setVerifyModalVisible] = useState(false);
+  const [verifyCode, setVerifyCode] = useState("");
+  const [verifyPhone, setVerifyPhone] = useState("");
+  const [verifying, setVerifying] = useState(false);
+  const [sendingCode, setSendingCode] = useState(false);
 
   const loadData = useCallback(async () => {
     const code = await getSetting("selected_country");
@@ -103,14 +113,72 @@ export default function SettingsScreen() {
   const handleSaveUserName = async () => {
     if (userName.trim()) {
       await setSetting("user_name", userName.trim());
-      Alert.alert("저장 완료", "이름이 저장되었습니다.");
+      // 자동 서버 동기화
+      syncProfileToServer().catch(() => {});
     }
   };
 
   const handleSaveUserPhone = async () => {
-    if (userPhone.trim()) {
-      await setSetting("user_phone", userPhone.trim());
-      Alert.alert("저장 완료", "휴대폰번호가 저장되었습니다.");
+    const phone = userPhone.trim();
+    if (!phone) return;
+
+    // 서버에서 전화번호 중복 확인
+    const { needsVerification } = await checkPhoneOwnership(phone);
+
+    if (needsVerification) {
+      // 중복 → 인증코드 발송 및 인증 모달 표시
+      setVerifyPhone(phone);
+      setVerifyCode("");
+      setSendingCode(true);
+      setVerifyModalVisible(true);
+
+      const sendResult = await sendVerificationCode(phone);
+      setSendingCode(false);
+
+      if (!sendResult.success) {
+        Alert.alert("인증코드 발송 실패", sendResult.message);
+        setVerifyModalVisible(false);
+      }
+    } else {
+      // 중복 없음 → 바로 저장 및 자동 동기화
+      await setSetting("user_phone", phone);
+      syncProfileToServer().catch(() => {});
+    }
+  };
+
+  /** 인증코드 확인 */
+  const handleVerifyCode = async () => {
+    if (verifyCode.length !== 6) {
+      Alert.alert("입력 오류", "인증코드 6자리를 입력해주세요.");
+      return;
+    }
+
+    setVerifying(true);
+    const result = await verifyPhoneCode(verifyPhone, verifyCode);
+    setVerifying(false);
+
+    if (result.success) {
+      await setSetting("user_phone", verifyPhone);
+      setVerifyModalVisible(false);
+      Alert.alert("인증 완료", "휴대폰번호가 저장되었습니다.");
+      // 자동 서버 동기화
+      syncProfileToServer().catch(() => {});
+    } else {
+      Alert.alert("인증 실패", result.message);
+    }
+  };
+
+  /** 인증코드 재발송 */
+  const handleResendCode = async () => {
+    setSendingCode(true);
+    const result = await sendVerificationCode(verifyPhone);
+    setSendingCode(false);
+
+    if (result.success) {
+      setVerifyCode("");
+      Alert.alert("재발송 완료", "인증코드가 앱 PUSH로 재발송되었습니다.");
+    } else {
+      Alert.alert("발송 실패", result.message);
     }
   };
 
@@ -201,6 +269,74 @@ export default function SettingsScreen() {
   };
 
   return (
+    <>
+    {/* 전화번호 인증 모달 */}
+    <Modal
+      visible={verifyModalVisible}
+      animationType="fade"
+      transparent
+      onRequestClose={() => setVerifyModalVisible(false)}
+    >
+      <View style={styles.verifyOverlay}>
+        <View style={styles.verifyContent}>
+          <Text style={styles.verifyTitle}>전화번호 인증</Text>
+          <Text style={styles.verifyDesc}>
+            이 전화번호는 이미 다른 기기에서 등록되어 있습니다.{"\n"}
+            기존 기기로 발송된 인증코드 6자리를 입력해주세요.
+          </Text>
+          <Text style={styles.verifyPhoneText}>{verifyPhone}</Text>
+
+          {sendingCode ? (
+            <View style={styles.verifyLoading}>
+              <ActivityIndicator color="#2563EB" size="small" />
+              <Text style={styles.verifyLoadingText}>
+                인증코드 발송 중...
+              </Text>
+            </View>
+          ) : (
+            <>
+              <TextInput
+                style={styles.verifyInput}
+                placeholder="인증코드 6자리"
+                value={verifyCode}
+                onChangeText={setVerifyCode}
+                keyboardType="number-pad"
+                maxLength={6}
+                autoFocus
+              />
+              <TouchableOpacity
+                style={[
+                  styles.verifyButton,
+                  verifying && styles.verifyButtonDisabled,
+                ]}
+                onPress={handleVerifyCode}
+                disabled={verifying}
+              >
+                {verifying ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={styles.verifyButtonText}>인증 확인</Text>
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.resendButton}
+                onPress={handleResendCode}
+              >
+                <Text style={styles.resendButtonText}>인증코드 재발송</Text>
+              </TouchableOpacity>
+            </>
+          )}
+
+          <TouchableOpacity
+            style={styles.verifyCancelButton}
+            onPress={() => setVerifyModalVisible(false)}
+          >
+            <Text style={styles.verifyCancelText}>취소</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+
     <FlatList
       style={styles.container}
       contentContainerStyle={styles.content}
@@ -341,8 +477,8 @@ export default function SettingsScreen() {
               당사 서버에 저장합니다.
             </Text>
             <Text style={styles.syncSubDescription}>
-              긴급 상황 시 전화발신 번호로 이용자를 확인하고{"\n"}
-              비상연락처에 알림톡을 발송하는 데 사용됩니다.
+              정보 변경 시 자동으로 서버에 동기화됩니다.{"\n"}
+              수동으로 동기화하려면 아래 버튼을 누르세요.
             </Text>
             <View style={styles.syncStatusRow}>
               <Text style={styles.syncStatusLabel}>마지막 동기화:</Text>
@@ -368,6 +504,7 @@ export default function SettingsScreen() {
         </>
       }
     />
+    </>
   );
 }
 
@@ -591,5 +728,96 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 15,
     fontWeight: "700",
+  },
+  // 전화번호 인증 모달 스타일
+  verifyOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    padding: 24,
+  },
+  verifyContent: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 24,
+  },
+  verifyTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#1F2937",
+    marginBottom: 12,
+    textAlign: "center",
+  },
+  verifyDesc: {
+    fontSize: 14,
+    color: "#6B7280",
+    lineHeight: 20,
+    textAlign: "center",
+    marginBottom: 12,
+  },
+  verifyPhoneText: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#1D4ED8",
+    textAlign: "center",
+    marginBottom: 16,
+  },
+  verifyLoading: {
+    alignItems: "center",
+    paddingVertical: 20,
+    gap: 8,
+  },
+  verifyLoadingText: {
+    fontSize: 14,
+    color: "#6B7280",
+  },
+  verifyInput: {
+    backgroundColor: "#F9FAFB",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 24,
+    fontWeight: "700",
+    textAlign: "center",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    letterSpacing: 8,
+    marginBottom: 16,
+  },
+  verifyButton: {
+    backgroundColor: "#2563EB",
+    borderRadius: 10,
+    padding: 14,
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  verifyButtonDisabled: {
+    backgroundColor: "#9CA3AF",
+  },
+  verifyButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  resendButton: {
+    padding: 12,
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  resendButtonText: {
+    color: "#2563EB",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  verifyCancelButton: {
+    backgroundColor: "#F3F4F6",
+    borderRadius: 10,
+    padding: 14,
+    alignItems: "center",
+  },
+  verifyCancelText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#6B7280",
   },
 });

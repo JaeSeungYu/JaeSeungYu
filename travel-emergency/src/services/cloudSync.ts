@@ -4,6 +4,9 @@ import {
   upsertUserProfile,
   syncEmergencyContacts,
   updateUserLocation,
+  checkPhoneDuplicate,
+  requestVerificationCode,
+  verifyVerificationCode,
 } from "./supabaseClient";
 
 /**
@@ -158,6 +161,110 @@ export async function syncLocationToServer(
       success: false,
       message: "위치 동기화 실패 - 네트워크를 확인해주세요.",
       synced_at: "",
+    };
+  }
+}
+
+/**
+ * 백그라운드 GPS 위치 업데이트
+ *
+ * 긴급연락 화면에서 버튼 클릭 시 자동 호출
+ * - UI를 블로킹하지 않음 (fire-and-forget)
+ * - 데이터 연결이 없으면 서버 동기화만 스킵
+ */
+export async function updateGpsInBackground(): Promise<void> {
+  try {
+    let Location: any;
+    try {
+      Location = require("expo-location");
+    } catch {
+      return;
+    }
+
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== "granted") return;
+
+    const location = await Location.getCurrentPositionAsync({
+      accuracy: Location.Accuracy.High,
+    });
+
+    const lat = location.coords.latitude;
+    const lng = location.coords.longitude;
+    const now = new Date().toISOString();
+
+    // 로컬 저장
+    await setSetting("gps_latitude", lat.toString());
+    await setSetting("gps_longitude", lng.toString());
+    await setSetting("gps_updated_at", now);
+
+    // 서버에 위치 동기화 (데이터 연결 없으면 무시)
+    await syncLocationToServer(lat, lng);
+  } catch {
+    // 위치 서비스 불가 또는 네트워크 오류 시 무시
+  }
+}
+
+/**
+ * 휴대폰번호 중복 확인
+ *
+ * 서버에 동일한 번호가 존재하고 다른 기기에서 등록된 경우
+ * 인증코드 검증이 필요함
+ */
+export async function checkPhoneOwnership(
+  phone: string
+): Promise<{ needsVerification: boolean }> {
+  try {
+    const deviceId = await getOrCreateDeviceId();
+    const result = await checkPhoneDuplicate(phone, deviceId);
+
+    if (result.exists && !result.sameDevice) {
+      return { needsVerification: true };
+    }
+
+    return { needsVerification: false };
+  } catch {
+    // 네트워크 오류 시 검증 불필요로 처리 (오프라인 허용)
+    return { needsVerification: false };
+  }
+}
+
+/**
+ * 인증코드 요청 (앱 PUSH로 발송)
+ */
+export async function sendVerificationCode(
+  phone: string
+): Promise<{ success: boolean; message: string }> {
+  try {
+    await requestVerificationCode(phone);
+    return {
+      success: true,
+      message: "인증코드가 앱 PUSH로 발송되었습니다.",
+    };
+  } catch {
+    return {
+      success: false,
+      message: "인증코드 발송 실패 - 네트워크를 확인해주세요.",
+    };
+  }
+}
+
+/**
+ * 인증코드 검증
+ */
+export async function verifyPhoneCode(
+  phone: string,
+  code: string
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const verified = await verifyVerificationCode(phone, code);
+    if (verified) {
+      return { success: true, message: "인증이 완료되었습니다." };
+    }
+    return { success: false, message: "인증코드가 일치하지 않습니다." };
+  } catch {
+    return {
+      success: false,
+      message: "인증 실패 - 네트워크를 확인해주세요.",
     };
   }
 }

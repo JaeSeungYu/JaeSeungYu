@@ -19,6 +19,7 @@ import { TRAVEL_ADVISORIES } from "../../src/constants/travelAdvisories";
 import { Consulate, EmergencyContact } from "../../src/types";
 import { countryCodeToFlag } from "../../src/utils/countryFlag";
 import { executeEmergencySOS, requestAlimtalkNotification } from "../../src/services/emergencySos";
+import { updateGpsInBackground } from "../../src/services/cloudSync";
 
 export default function EmergencyScreen() {
   const [consulate, setConsulate] = useState<Consulate | null>(null);
@@ -27,6 +28,7 @@ export default function EmergencyScreen() {
   const [contacts, setContacts] = useState<EmergencyContact[]>([]);
   const [loading, setLoading] = useState(true);
   const [advisoryVisible, setAdvisoryVisible] = useState(false);
+  const [sosInfoVisible, setSosInfoVisible] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
@@ -78,6 +80,8 @@ export default function EmergencyScreen() {
           text: "긴급 발신",
           style: "destructive",
           onPress: async () => {
+            // 백그라운드 GPS 업데이트 (데이터 연결 시에만)
+            updateGpsInBackground();
             const result = await executeEmergencySOS("1588-0404");
 
             if (result.serverNotified) {
@@ -122,6 +126,8 @@ export default function EmergencyScreen() {
           text: "발송",
           style: "destructive",
           onPress: async () => {
+            // 백그라운드 GPS 업데이트 (데이터 연결 시에만)
+            updateGpsInBackground();
             const result = await requestAlimtalkNotification();
             if (result.success) {
               Alert.alert("발송 완료", result.message);
@@ -132,6 +138,25 @@ export default function EmergencyScreen() {
         },
       ]
     );
+  };
+
+  /** 영사관 긴급 전화 핸들러 (GPS 업데이트 포함) */
+  const handleConsulateCall = () => {
+    updateGpsInBackground();
+    const phone = consulate?.emergency_phone || consulate?.phone || "";
+    const cleanPhone = phone.replace(/[^+\d]/g, "");
+    Linking.openURL(`tel:${cleanPhone}`).catch(() => {
+      Alert.alert("오류", "전화 앱을 열 수 없습니다.");
+    });
+  };
+
+  /** 영사콜센터 전화 핸들러 (GPS 업데이트 포함) */
+  const handleConsularCallCenter = () => {
+    updateGpsInBackground();
+    const cleanPhone = CONSULAR_CALL_CENTER.replace(/[^+\d]/g, "");
+    Linking.openURL(`tel:${cleanPhone}`).catch(() => {
+      Alert.alert("오류", "전화 앱을 열 수 없습니다.");
+    });
   };
 
   if (!consulate) {
@@ -206,12 +231,60 @@ export default function EmergencyScreen() {
         </View>
       </Modal>
 
+      {/* 긴급구조신호 추가정보 모달 */}
+      <Modal
+        visible={sosInfoVisible}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setSosInfoVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>긴급구조신호 안내</Text>
+            <View style={styles.sosInfoList}>
+              <View style={styles.sosInfoItem}>
+                <Text style={styles.sosInfoBullet}>•</Text>
+                <Text style={styles.sosInfoText}>
+                  긴급구조신호는 전화걸기만으로 구조신호가 접수됩니다.
+                </Text>
+              </View>
+              <View style={styles.sosInfoItem}>
+                <Text style={styles.sosInfoBullet}>•</Text>
+                <Text style={styles.sosInfoText}>
+                  음성통화, 문자등의 행동이 불가한 경우에만 사용하세요.
+                </Text>
+              </View>
+              <View style={styles.sosInfoItem}>
+                <Text style={styles.sosInfoBullet}>•</Text>
+                <Text style={styles.sosInfoText}>
+                  구조신호 접수 후 당사 콜센타에서 경찰등 유관기관에 연락을 취합니다.
+                </Text>
+              </View>
+              <View style={styles.sosInfoItem}>
+                <Text style={styles.sosInfoBullet}>•</Text>
+                <Text style={styles.sosInfoText}>
+                  데이터연결이 되어 있는 경우, 비상연락망의 연락처로 추가 알림이 전송됩니다.{"\n"}
+                  (데이터연결이 안되어 있을경우에는 미전송)
+                </Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              style={styles.modalCloseButton}
+              onPress={() => setSosInfoVisible(false)}
+            >
+              <Text style={styles.modalCloseText}>닫기</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       <View style={styles.buttonsContainer}>
         <EmergencyButton
           label="영사관 긴급 전화"
           subLabel={consulate.name}
           phone={consulate.emergency_phone || consulate.phone}
           color="#DC2626"
+          onPress={handleConsulateCall}
         />
 
         {/* 긴급구조신호: 전화발신(필수) + 서버전송(필수시도, 실패허용) */}
@@ -220,7 +293,19 @@ export default function EmergencyScreen() {
           onPress={handleEmergencySOS}
           activeOpacity={0.8}
         >
-          <Text style={styles.sosLabel}>긴급구조신호보내기</Text>
+          <View style={styles.sosLabelRow}>
+            <Text style={styles.sosLabel}>긴급구조신호보내기</Text>
+            <TouchableOpacity
+              style={styles.sosInfoButton}
+              onPress={(e) => {
+                e.stopPropagation();
+                setSosInfoVisible(true);
+              }}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Text style={styles.sosInfoButtonText}>i</Text>
+            </TouchableOpacity>
+          </View>
           <Text style={styles.sosSubLabel}>
             전화발신(필수) + 구조신호 서버전송
           </Text>
@@ -244,6 +329,7 @@ export default function EmergencyScreen() {
           phone={CONSULAR_CALL_CENTER}
           color="#7C3AED"
           style={{ marginTop: 8 }}
+          onPress={handleConsularCallCenter}
         />
       </View>
 
@@ -386,10 +472,29 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 6,
   },
+  sosLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
   sosLabel: {
     color: "#fff",
     fontSize: 20,
     fontWeight: "800",
+  },
+  sosInfoButton: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: "rgba(255,255,255,0.3)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sosInfoButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "800",
+    fontStyle: "italic",
   },
   sosSubLabel: {
     color: "rgba(255,255,255,0.8)",
@@ -536,6 +641,27 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   advisoryText: {
+    flex: 1,
+    fontSize: 15,
+    color: "#374151",
+    lineHeight: 22,
+  },
+  sosInfoList: {
+    marginBottom: 16,
+  },
+  sosInfoItem: {
+    flexDirection: "row",
+    marginBottom: 12,
+    alignItems: "flex-start",
+  },
+  sosInfoBullet: {
+    fontSize: 16,
+    color: "#1D4ED8",
+    fontWeight: "700",
+    marginRight: 8,
+    lineHeight: 22,
+  },
+  sosInfoText: {
     flex: 1,
     fontSize: 15,
     color: "#374151",

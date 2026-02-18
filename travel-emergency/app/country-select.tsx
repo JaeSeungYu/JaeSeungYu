@@ -10,6 +10,7 @@ import {
 import { router } from "expo-router";
 import { getAllCountries, setSetting, getSetting } from "../src/db/database";
 import { countryCodeToFlag } from "../src/utils/countryFlag";
+import { syncProfileToServer } from "../src/services/cloudSync";
 
 interface Country {
   country_code: string;
@@ -52,6 +53,8 @@ export default function CountrySelectScreen() {
   const handleSelect = async (code: string) => {
     await setSetting("selected_country", code);
     setSelectedCode(code);
+    // 자동 서버 동기화
+    syncProfileToServer().catch(() => {});
     router.back();
   };
 
